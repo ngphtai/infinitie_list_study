@@ -1,18 +1,17 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart'; //
-import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
-import 'package:infinitie_list/posts/models/posts.dart';
+import 'package:infinitie_list/common/enums/status_posts.dart';
+import 'package:infinitie_list/data/model/models/posts.dart';
+import 'package:infinitie_list/data/model/repositories/post_repository.dart';
+
 import 'package:stream_transform/stream_transform.dart';
-import 'package:http/http.dart' as http;
 
 part 'post_event.dart';
 part 'post_state.dart';
 
 const throttleDuration = Duration(seconds: 100);
-const _limit = 20;
 
 EventTransformer<E> throttleDroppable<E>(Duration duration) {
   return (events, mapper) {
@@ -22,7 +21,9 @@ EventTransformer<E> throttleDroppable<E>(Duration duration) {
 }
 
 class PostBloc extends Bloc<PostEvent, PostState> {
-  PostBloc() : super(const PostState()) {
+  final PostRepository postRepository;
+
+  PostBloc(this.postRepository) : super(const PostState()) {
     on<PostFetched>(
       _onPostFetched,
       transformer: throttleDroppable(throttleDuration),
@@ -35,13 +36,14 @@ class PostBloc extends Bloc<PostEvent, PostState> {
 
     try {
       if (state.status == PostStatus.initial) {
-        final posts = await _fetchPosts(startIndex: 0);
+        final posts = await postRepository.fetchPosts(startIndex: 0);
 
         return emit(state.copyWith(
             status: PostStatus.success, posts: posts, isMax: false));
       }
 
-      final posts = await _fetchPosts(startIndex: state.posts.length);
+      final posts =
+          await postRepository.fetchPosts(startIndex: state.posts.length);
       emit(posts.isEmpty
           ? state.copyWith(isMax: true)
           : state.copyWith(
@@ -52,25 +54,5 @@ class PostBloc extends Bloc<PostEvent, PostState> {
       emit(state.copyWith(status: PostStatus.failure));
       print(_.toString());
     }
-  }
-
-  final dio = Dio();
-
-  Future<List<Posts>> _fetchPosts({required int startIndex}) async {
-    final response = await dio.get('https://jsonplaceholder.typicode.com/posts',
-        queryParameters: {'_start': '$startIndex', '_limit': '$_limit'});
-
-    if (response.statusCode == 200) {
-      final body = response.data as List;
-      return body.map((dynamic json) {
-        final map = json as Map<String, dynamic>;
-        return Posts(
-          id: map['id'] as int,
-          title: map['title'] as String,
-          body: map['body'] as String,
-        );
-      }).toList();
-    }
-    throw Exception("Error fetching posts");
   }
 }

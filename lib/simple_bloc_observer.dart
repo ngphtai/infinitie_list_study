@@ -4,7 +4,7 @@ class SimpleBlocObserver extends BlocObserver {
   const SimpleBlocObserver();
 
   @override
-  void onTransitor(
+  void onTransistorr(
     Bloc<dynamic, dynamic> bloc,
     Transition<dynamic, dynamic> transition,
   ) {

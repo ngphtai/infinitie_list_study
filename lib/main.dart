@@ -1,11 +1,13 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:infinitie_list/app.dart';
+import 'package:infinitie_list/core/di/service_locator.dart';
 import 'package:infinitie_list/simple_bloc_observer.dart';
 
 void main() {
+  setupLocator();
   Bloc.observer = const SimpleBlocObserver();
-  runApp(const App());
+  runApp(App());
 }
 
 class MyApp extends StatelessWidget {
